@@ -1,5 +1,7 @@
 import generateur as ge 
 import Chiffrement as ch
+import base_de_donnee as db
+import master_key   as key
 
 
 def add_compte():
@@ -7,7 +9,7 @@ def add_compte():
         site = input("nom du site ou de l application  ")
         # .strip() c'est pour enlever les espaces
         site = site.strip()
-        if site == "":
+        if site == "": # si le champs est vide 
             print('le nom du site est requis')
         else:
             break
@@ -15,25 +17,23 @@ def add_compte():
     while True:
         id_client = input("entrez votre email ou votre nom d'utilisateur  ")
         id_client = id_client.strip()
-        if id_client == "":
+        if id_client == "":#la meme chose que pour site 
             print("les identifiants (email ou nom d'utilisateur ) est requis  ")
         else:
             break
 
     # Génère ou sélectionne un mot de passe pour le compte
     mdp = ge.choisir()
-    mdp_chiff = ch.chiffrement(mdp)
 
-    note = input("Note optionnelle : ")
+    mdp_chiff = ch.chiffrement(mdp) # fais passer un "emanuel" en "fyczxalyvaxxxbmuzxxxauzm" elle le chiffre en gros
 
-    compte = {
-        "site": site,
-        "identifiant": id_client,
-        "mot de passe": mdp_chiff,
-        "note": note,
-    }
-    return compte
+    note = input("Note optionnelle : ") # un petit commentaire ou quelque chose a savoir sur le mot de passe 
 
+    db.ajout_comptedb(site,id_client,mdp_chiff,note)#apres recolte on ajoute tout ca a la base de donées
+
+    print("compte ajouté avec succès à la base de données " )
+
+    # ajouter ok
 
 def voir_mdp(coffre):
     """Affiche les mots de passe enregistrés dans le coffre.
@@ -41,47 +41,76 @@ def voir_mdp(coffre):
     Paramètres :
     coffre (list): Liste des comptes contenant les informations chiffrées.
     """
-    if len(coffre) == 0:
+    comptes=db.voir_tous_comptes()
+    if len(coffre) == 0: # si la db est vide 
         print("aucun mot de passe enregistré")
         return
 
-    for compte in coffre:
-        mot_de_passe_chiffre = compte.get("mot de passe")
-        
-        if isinstance(mot_de_passe_chiffre, bytes):
-            mot_de_passe_chiffre = mot_de_passe_chiffre.decode('utf-8')
+    for compte in comptes:#on parcours chaque elements dns la base de donnée
+        """un compte ressemble a ca (id,site,compte,identifiants,mdp,note)
+        en sachant que id est à l indice 0
+        ensuite on recupere tout """
+        id_compte=compte[0]
+        site=compte[1]
+        identifiant=compte[2]
+        mot_de_passe=compte[3]
+        note=compte[4]
 
         mot_de_passe = ch.dechiffrement(mot_de_passe_chiffre)
 
         print("--------------------------")
-        print("site:", compte.get("site"))
-        print("identifiant:", compte.get("identifiant"))
+        print("ID: ",id_compte )
+        print("site:", site)
+        print("identifiant: ", identifiant)
         print("mot de passe : ", mot_de_passe)
         print("--------------------------")
 
 
 def rechercher_mdp(coffre, cle, recherche):
-    trouve = False
+    recherche = input("Entrez le site ou l identifiant que vous chechez :  ")
+    recherche = recherche.strip()
+    
+    comptes=db.rechercher_compte_db(recherche)
+    """ c est le meme principe"""
+    if len(comptes)==0:
+        print("pas de compte correspondant")
+        return
+    for compte in comptes:
 
-    for compte in coffre:
-        site = compte.get("site", "").lower()
-        
-        ident = compte.get("identifiant", "").lower()
-        
-        if recherche.lower() in site or recherche.lower() in ident:
-            mot_chiff = compte.get("mot de passe")
-           
-            if isinstance(mot_chiff, bytes):
-                mot_chiff = mot_chiff.decode('utf-8')
-            mot_de_passe = ch.dechiffrement(mot_chiff)
+        id_compte=compte[0]
+        site=compte[1]
+        identifiant=compte[2]
+        mot_de_passe_chiffre=compte[3]
+        note=compte[4]
 
-            print("--------------------------")
-            print("site:", compte.get("site"))
-            print("identifiant:", compte.get("identifiant"))
-            print("mot de passe : ", mot_de_passe)
-            print("--------------------------")
+        mot_de_passe = ch.dechiffrement(mot_de_passe_chiffre)
 
-            trouve = True
+        print("--------------------------")
+        print("ID: ",id_compte )
+        print("site:", site)
+        print("identifiant: ", identifiant)
+        print("mot de passe : ", mot_de_passe)
+        if note :
+            print("note: ",note)
+        print("--------------------------")
 
-    if trouve == False :
-        print("Pas de compte correspondant")
+def menu(): 
+    db.creation_tablesql_pour_lesmdp()
+
+    while True():
+        print ("\n===+++===BIENVENUE DANS GESTIO!!===+++===")
+        print ("1.Ajouter un mot de passe")
+        print ("2.Voir tout les mots de passe")
+        print ("3.Rechercher un mot de passe")
+        print ("4.Quitter")
+
+        choix =input ("Entrez un choix :  ")
+
+        if choix==1: add_compte()
+        elif choix == 2 : voir_mdp()
+        elif choix == 3 : rechercher_mdp ()
+
+if __name__=="__main__":
+    menu()
+
+

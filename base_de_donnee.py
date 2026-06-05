@@ -19,6 +19,8 @@ def creation_tablesql_pour_lesmdp():
     )
     """)
     #NOT NULL pour dire que ce sont des donnée obligatoires 
+    #on a creer une table et un colone pour tout
+    #autoincrement simplement pour  numeroté
 
     connexion.commit()
     #va valider et sauvegarder 
@@ -52,4 +54,24 @@ def voir_tous_comptes():
     comptes= control.fetchall()
     connexion.close()
     return comptes
+
     
+def rechercher_compte_db(recherche):
+    creation_tablesql()
+
+    connexion = sqlite3.connect(DATA)
+    curseur = connexion.cursor()
+
+    recherche = "%" + recherche + "%"
+
+    curseur.execute("""
+        SELECT id, service, identifiant, mot_de_passe, note
+        FROM mdp_utilisateur
+        WHERE service LIKE ? OR identifiant LIKE ?
+    """, (recherche, recherche))
+
+    comptes = curseur.fetchall()
+
+    connexion.close()
+    return comptes
+
